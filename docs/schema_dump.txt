@@ -1,0 +1,50 @@
+
+============================================================
+e_commerce.customer  (11 cột)
+ PK: ['customer_id']
+  customer_id                    NVARCHAR(20) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  first_name                     NVARCHAR(50) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  last_name                      NVARCHAR(50) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  birth_date                     DATE
+  marital_status                 NVARCHAR(20) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  gender                         NVARCHAR(1) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  email_address                  NVARCHAR(100) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  annual_income                  INTEGER
+  education_level                NVARCHAR(50) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  occupation                     NVARCHAR(50) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  home_owner                     NVARCHAR(1) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+
+============================================================
+e_commerce.ecom_sales  (11 cột)
+ PK: ['row_id']
+  row_id                         INTEGER
+  order_id                       NVARCHAR(50) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  order_date                     DATE
+  customer_id                    NVARCHAR(20) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  segment                        NVARCHAR(50) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  region_code                    NVARCHAR(10) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  product_code                   NVARCHAR(10) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  quantity                       INTEGER
+  sales                          DECIMAL(10, 2)
+  discount                       DECIMAL(10, 2)
+  profit                         DECIMAL(10, 2)
+
+============================================================
+e_commerce.product  (4 cột)
+ PK: ['product_code']
+  product_code                   NVARCHAR(10) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  product                        NVARCHAR(255) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  category                       NVARCHAR(50) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  subcategory                    NVARCHAR(50) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+
+============================================================
+e_commerce.region  (8 cột)
+ PK: ['region_code']
+  region_code                    NVARCHAR(10) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  city                           NVARCHAR(50) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  state                          NVARCHAR(50) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  country                        NVARCHAR(50) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  country_latitude               DECIMAL(10, 6)
+  country_longitude              DECIMAL(10, 6)
+  region                         NVARCHAR(50) COLLATE "SQL_Latin1_General_CP1_CI_AS"
+  market                         NVARCHAR(50) COLLATE "SQL_Latin1_General_CP1_CI_AS"
