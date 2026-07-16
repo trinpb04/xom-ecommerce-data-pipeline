@@ -1,0 +1,9 @@
+version: 2
+
+models:
+  - name: dim_region
+    columns:
+      - name: id
+        tests:
+          - not_null
+          - unique

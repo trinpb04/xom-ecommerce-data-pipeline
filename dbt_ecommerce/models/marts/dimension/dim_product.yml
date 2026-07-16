@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: dim_product
+    columns:
+      - name: id
+        tests:
+          - not_null
+          - unique
+      - name: product_name
+        tests:
+          - not_null
