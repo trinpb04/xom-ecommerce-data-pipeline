@@ -1,0 +1,19 @@
+version: 2
+
+sources:
+  - name: e_commerce
+    database: ecommerce_db
+    schema: e_commerce
+    tables:
+      - name: product
+        columns:
+          - name: product_code
+            tests:
+              - not_null
+              - unique
+          - name: product
+            tests:
+              - not_null
+          - name: category
+            tests:
+              - not_null

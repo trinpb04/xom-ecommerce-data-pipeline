@@ -1,0 +1,21 @@
+version: 2
+
+sources:
+  - name: e_commerce
+    database: ecommerce_db
+    tables:
+      - name: customer
+        columns:
+          - name: customer_id
+            tests:
+              - not_null
+              - unique
+          - name: first_name
+            tests:
+              - not_null
+          - name: last_name
+            tests:
+              - not_null
+          - name: annual_income
+            tests:
+              - not_null

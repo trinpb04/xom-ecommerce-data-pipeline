@@ -1,0 +1,21 @@
+version: 2
+
+sources:
+  - name: e_commerce
+    database: ecommerce_db
+    tables:
+      - name: region
+        columns:
+          - name: region_code
+            tests:
+              - not_null
+              - unique
+          - name: region
+            tests:
+              - not_null
+          - name: city
+            tests:
+              - not_null
+          - name: market
+            tests:
+              - not_null

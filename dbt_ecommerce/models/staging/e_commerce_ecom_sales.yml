@@ -1,0 +1,32 @@
+version: 2
+
+sources:
+  - name: e_commerce
+    database: ecommerce_db
+    tables:
+      - name: ecom_sales
+        columns:
+          - name: row_id
+            tests:
+              - not_null
+              - unique
+          - name: order_id
+            tests:
+              - not_null
+          - name: order_date
+            tests:
+              - not_null
+          - name: customer_id
+            tests:
+              - not_null
+          - name: segment
+          - name: region_code
+            tests:
+              - not_null
+          - name: product_code
+            tests:
+              - not_null
+          - name: quantity
+          - name: sales
+          - name: discount
+          - name: profit
