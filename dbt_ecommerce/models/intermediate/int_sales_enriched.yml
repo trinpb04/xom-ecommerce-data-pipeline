@@ -1,0 +1,49 @@
+version: 2
+
+models:
+  - name: int_sales_enriched
+    description: "Ghép sales với product(category) và region(lấy market/region), tính 2 cột phái sinh quan trọng"
+    columns:
+      - name: row_id
+        tests:
+          - not_null
+          - unique
+      - name: order_id
+        tests:
+          - not_null
+      - name: order_date
+        tests: 
+          - not_null
+      - name: customer_id
+        tests:
+          - not_null
+      - name: customer_segment
+        tests:
+          - not_null
+      - name: region_id
+        tests:
+          - not_null
+      - name: region
+      - name: market
+      - name: country
+      - name: product_id
+        tests: 
+          - not_null
+      - name: category
+      - name: subcategory
+      - name: quantity
+      - name: sales
+        tests:
+          - not_null
+      - name: discount
+        tests: 
+          - not_null
+      - name: profit
+        tests:
+          - not_null
+      - name: net_sales
+        tests:
+          - not_null
+      - name: profit_margin
+        tests:
+          - not_null

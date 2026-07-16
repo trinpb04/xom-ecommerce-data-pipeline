@@ -1,0 +1,24 @@
+version: 2
+
+models:
+  - name: int_customer_order_summary
+    description: "Từ fact đã enrich, tổng hợp về mực mỗi khách hàng | nguyên liệu RFM"
+    columns:
+      - name: customer_id
+        tests:
+          - not_null
+          - unique
+      - name: first_order_date
+        tests: 
+          - not_null
+      - name: last_order_date
+        tests: 
+          - not_null
+      - name: total_orders
+        tests:
+          - not_null
+      - name: total_net_sales
+        tests:
+          - not_null
+      - name: net_profit
+          - not_null
