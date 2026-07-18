@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: fct_sales
+    description: "Grain **1 dòng = 1 sản phẩm trong 1 đơn hàng**"
+    columns:
+      - name: row_id
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_customer')
+                field: id
+      - name: product_id
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: id
+      - name: region_id
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_region')
+                field: id

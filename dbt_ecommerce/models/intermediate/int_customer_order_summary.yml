@@ -20,5 +20,6 @@ models:
       - name: total_net_sales
         tests:
           - not_null
-      - name: net_profit
+      - name: total_profit
+        tests:
           - not_null

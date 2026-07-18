@@ -40,7 +40,19 @@ enriched as (
         CASE 
             WHEN sales.sales != 0 THEN sales.profit / sales.sales 
             ELSE NULL 
-        END as profit_margin
+        END as profit_margin,
+
+        -- unit_price: giá bán mỗi đơn vị TRƯỚC discount - dùng so sánh giá giữa sản phẩm/category
+        CASE
+            WHEN sales.quantity != 0 THEN round(sales.sales / sales.quantity, 2)
+            ELSE NULL
+        END as unit_price,
+
+        -- discount_amount: số tiền $ THỰC TẾ đã giảm - khác cột discount (chỉ là %)
+        round(sales.sales * coalesce(sales.discount, 0), 2) as discount_amount,
+
+        -- is_profitable: cờ nhanh lọc giao dịch lời/lỗ, không cần so profit từng lần
+        CASE WHEN sales.profit > 0 THEN true ELSE false END as is_profitable
 
     FROM sales
     LEFT JOIN product
