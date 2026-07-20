@@ -1,100 +1,114 @@
-# Xom Ecommerce Data Pipeline
+<h1 align="center">🛒 Xom Ecommerce Data Pipeline</h1>
 
-End-to-end data pipeline cho dữ liệu ecommerce: từ SQL Server (OLTP) đến dashboard Power BI, tự động hóa hoàn toàn bằng Airflow.
+<p align="center">
+  <em>Kéo dữ liệu bán hàng từ SQL Server, làm sạch, và biến nó thành 3 cái dashboard mà sếp mở ra là hiểu ngay.</em>
+</p>
 
-**Đích đến:** SQL Server → dlt → Snowflake → dbt → Airflow (Docker/Astro) → Power BI
+<p align="center">
+  <img src="https://img.shields.io/badge/SQL_Server-CC2927?style=for-the-badge&logo=microsoftsqlserver&logoColor=white" />
+  <img src="https://img.shields.io/badge/dlt-3B82F6?style=for-the-badge&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white" />
+  <img src="https://img.shields.io/badge/dbt-FF694B?style=for-the-badge&logo=dbt&logoColor=white" />
+  <img src="https://img.shields.io/badge/Airflow-017CEE?style=for-the-badge&logo=apacheairflow&logoColor=white" />
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
+  <img src="https://img.shields.io/badge/Power_BI-F2C811?style=for-the-badge&logo=powerbi&logoColor=black" />
+</p>
 
-## Architecture
+<p align="center">
+  <img src="https://img.shields.io/badge/pipeline-passing-brightgreen?style=flat-square" />
+  <img src="https://img.shields.io/badge/dbt_tests-10_passed-brightgreen?style=flat-square" />
+  <img src="https://img.shields.io/badge/orchestration-daily_@_9AM_VN-blue?style=flat-square" />
+  <img src="https://img.shields.io/badge/dashboards-3-orange?style=flat-square" />
+</p>
+
+---
+
+## Tóm tắt nhanh
+
+Đây là project mình build một pipeline hoàn chỉnh: dữ liệu ecommerce nằm trong SQL Server, mình hút nó qua **dlt**, đổ vào **Snowflake**, làm sạch + mô hình hóa bằng **dbt**, cho **Airflow** chạy tự động mỗi sáng, rồi cắm **Power BI** vào để ra dashboard.
+
+Mục tiêu không phải "cho có" mà là làm đúng như production: có test, có orchestration, có star schema tử tế, và mỗi quyết định đều có lý do (mình ghi hết ở phần [What I learned](#what-i-learned) bên dưới).
 
 ```
-SQL Server (e_commerce)
-        │  dlt (Python) — Extract + Load
-        ▼
-Snowflake  ecommerce_db.e_commerce   (raw)
-        │  dbt — Transform
-        ▼
-Snowflake  ecommerce_db.dev          (staging → intermediate → marts)
-        │
-        ▼
-     Power BI  (Import mode, star schema)
+SQL Server ──dlt──▶ Snowflake (raw) ──dbt──▶ Snowflake (clean) ──▶ Power BI
+                          └──────── Airflow chạy tự động mỗi ngày ────────┘
 ```
 
-Toàn bộ pipeline chạy tự động mỗi ngày qua **Airflow** (Astro Runtime, Docker), điều phối 2 bước: `extract_load` (dlt) rồi `dbt_transform` (dbt qua Cosmos, mỗi model + test là 1 task riêng).
+Nghĩ đơn giản như một nhà máy nước: SQL Server là cái giếng, dlt là máy bơm, Snowflake là bồn chứa, dbt là hệ thống lọc, Airflow là cái công tắc hẹn giờ, còn Power BI là vòi nước cuối — mở ra là có nước sạch xài.
 
-Ví như một nhà máy nước: SQL Server là cái giếng, dlt là máy bơm hút nước thô lên bồn chứa Snowflake, dbt là nhà máy lọc biến nước thô thành nước sạch, Airflow là công tắc hẹn giờ tự vận hành mỗi ngày, và Power BI là vòi nước cuối cùng — mở dashboard là thấy dữ liệu sạch.
+---
 
-## Stack
+## 🧱 Stack & lý do chọn
 
-| Layer | Tool | Vai trò |
+| Layer | Tool | Tại sao dùng nó |
 |---|---|---|
-| Source | SQL Server | Dữ liệu OLTP gốc, schema `e_commerce` |
-| Extract + Load | [dlt](https://dlthub.com/) (Python) | Hút toàn bộ 4 bảng nguồn, ghi vào Snowflake (full load, idempotent) |
-| Warehouse | Snowflake | Raw (`e_commerce`) + Clean (`dev`) |
-| Transform | dbt (dbt-snowflake) | staging → intermediate → marts, kèm tests |
-| Orchestration | Airflow (Astro Runtime 3.x) + Docker + Cosmos | Chạy `extract_load` rồi `dbt_transform` tự động mỗi ngày |
-| BI | Power BI (Import mode) | 3 dashboard: Overview, Product, Customers |
+| Source | **SQL Server** | Dữ liệu gốc dạng OLTP, schema `e_commerce` |
+| Extract + Load | **dlt** (Python) | Viết vài dòng Python là hút xong 4 bảng, tự lo schema bên Snowflake |
+| Warehouse | **Snowflake** | Tách rõ raw (`e_commerce`) và clean (`dev`) trong cùng 1 database |
+| Transform | **dbt** | staging → intermediate → marts, kèm test — logic nằm hết ở đây |
+| Orchestration | **Airflow + Docker + Cosmos** | Chạy tự động mỗi ngày, mỗi model dbt là 1 task riêng nhìn được trên UI |
+| BI | **Power BI** (Import mode) | 3 dashboard: Overview, Product, Customers |
 
-## Data model
+---
 
-### Nguồn (`e_commerce`, SQL Server)
+## 🗂️ Data model
 
-| Bảng | Vai trò | PK |
+Nguồn có đúng 4 bảng, mình giữ nguyên tinh thần đó khi lên star schema:
+
+| Bảng nguồn | Là gì | Khóa chính |
 |---|---|---|
 | `ecom_sales` | Fact — 1 dòng = 1 sản phẩm trong 1 đơn | `row_id` |
-| `customer` | Dim khách hàng | `customer_id` |
-| `product` | Dim sản phẩm | `product_code` |
-| `region` | Dim địa lý | `region_code` |
+| `customer` | Khách hàng | `customer_id` |
+| `product` | Sản phẩm | `product_code` |
+| `region` | Địa lý | `region_code` |
 
-### dbt — 3 lớp
-
-```
-staging (view)              đổi tên cột + làm sạch mã, KHÔNG join
-intermediate (table)        join dim + tính chỉ số phái sinh
-marts (table)                star schema cho Power BI
-├── dimension/  dim_customer, dim_product, dim_region, dim_date
-└── fact/       fct_sales, fct_customer_summary
-```
-
-**Star schema** trong Power BI — 2 fact chia sẻ `dim_customer` (conformed dimension):
+Qua dbt thì chia 3 lớp:
 
 ```
-                    ┌── dim_date
-                    │
-dim_customer ──┬── fct_sales ──── dim_product
-                │        │
-                │        └──── dim_region
-                │
-                └── fct_customer_summary
+staging (view)         →  đổi tên cột + làm sạch mã, KHÔNG join gì hết
+intermediate (table)   →  join dim vào, tính chỉ số phái sinh
+marts (table)          →  star schema đưa thẳng vào Power BI
+   ├── dim_customer / dim_product / dim_region / dim_date
+   └── fct_sales / fct_customer_summary
 ```
 
-- **`fct_sales`** — grain: 1 dòng = 1 sản phẩm trong 1 đơn. 5 chỉ số phái sinh tính sẵn ở dbt (`net_sales`, `profit_margin`, `unit_price`, `discount_amount`, `is_profitable`) — Power BI chỉ hiển thị, không viết DAX phức tạp.
-- **`fct_customer_summary`** — grain: 1 dòng = 1 khách hàng. Tổng hợp hành vi mua (`total_orders`, `days_since_last_order`, `is_returning_customer`) tính trên toàn bộ lịch sử, không gắn theo năm — có chủ đích, không làm RFM scoring.
+Điểm mình thấy đáng nói: **2 bảng fact dùng chung `dim_customer`** (conformed dimension), nên từ trang Product nhảy sang Customers vẫn nhất quán số liệu.
 
-Toàn bộ pipeline có **10 test dbt** (source-level `unique`/`not_null`, `relationships` giữa fact và dim, và 5 singular test nghiệp vụ: quantity dương, discount trong khoảng hợp lệ, net_sales ≤ sales, profit_margin hợp lý, order_date không ở tương lai).
+- `fct_sales` — grain 1 dòng/sản phẩm/đơn. 5 chỉ số (`net_sales`, `profit_margin`, `unit_price`, `discount_amount`, `is_profitable`) mình tính sẵn ở dbt luôn, nên Power BI gần như **không phải viết DAX** gì phức tạp.
+- `fct_customer_summary` — grain 1 dòng/khách. Tổng hợp hành vi mua trên toàn bộ lịch sử. Cố tình **không làm RFM** — thấy chưa cần thiết cho scope này.
 
-## Airflow DAG
+Cả pipeline có **10 test dbt**: mấy cái `unique`/`not_null` cho khóa, `relationships` để bắt orphan record, cộng 5 test nghiệp vụ tự viết (quantity phải dương, discount trong khoảng hợp lệ, net_sales không được lớn hơn sales, v.v.).
 
-`ecommerce_elt_dag` chạy `0 2 * * *` UTC (9h sáng giờ VN) mỗi ngày, `catchup=False`, `max_active_runs=1`. Cosmos `DbtTaskGroup` tách mỗi model dbt + test thành task riêng, thấy được model nào fail và lineage ngay trên UI.
+---
+
+## ⚙️ Airflow
+
+DAG `ecommerce_elt_dag` chạy **9h sáng mỗi ngày (giờ VN)**, làm 2 việc theo thứ tự: `extract_load` (dlt) xong rồi mới tới `dbt_transform`. Mình dùng Cosmos để tách mỗi model + test thành task riêng — fail chỗ nào thấy ngay chỗ đó, retry đúng chỗ, khỏi mò.
 
 ![Airflow DAG Graph](docs/images/dag_graph.png)
 
-## Power BI Dashboard
+---
 
-3 trang, cùng tông dark/tech, mỗi trang trả lời đúng vài câu hỏi kinh doanh cốt lõi thay vì nhồi hết mọi chỉ số:
+## 📊 Dashboard
 
-- **Overview** — sức khỏe kinh doanh tổng quan: doanh thu, lợi nhuận, số đơn, xu hướng theo tháng, theo quốc gia.
-- **Product** — category/sản phẩm nào đang gánh doanh thu, category nào lời/lỗ, quan hệ discount vs profit margin.
-- **Customers** — nhân khẩu học, khách mới vs khách quay lại, phân bố số lần mua hàng, top khách hàng.
+3 trang, cùng tông dark/tech. Nguyên tắc mình đặt ra: **mỗi trang chỉ trả lời vài câu hỏi cốt lõi**, không nhồi hết mọi con số vào một chỗ cho rối mắt.
 
-▶ [Xem dashboard trực tiếp](https://app.powerbi.com/view?r=eyJrIjoiOTAwYjNmMjYtZjRmNS00Y2I0LTgxMjYtZjYxYjNkNzhmZWRkIiwidCI6IjM3MGZiM2I4LTMzMDYtNDg5MC05MDYzLWNjMDhiZTc4ODI1NyIsImMiOjEwfQ%3D%3D)
+- **Overview** — sức khỏe kinh doanh: doanh thu, lợi nhuận, đơn hàng, xu hướng theo tháng, theo quốc gia.
+- **Product** — category nào gánh doanh thu, category nào đang lỗ, và discount có đang ăn mòn lợi nhuận không.
+- **Customers** — khách là ai, khách mới hay khách quay lại nuôi doanh thu, bao nhiêu người mua đúng 1 lần rồi biến mất.
+
+> 👉 **[Bấm vào đây để xem dashboard chạy trực tiếp](https://app.powerbi.com/view?r=eyJrIjoiOTAwYjNmMjYtZjRmNS00Y2I0LTgxMjYtZjYxYjNkNzhmZWRkIiwidCI6IjM3MGZiM2I4LTMzMDYtNDg5MC05MDYzLWNjMDhiZTc4ODI1NyIsImMiOjEwfQ%3D%3D)**
 
 ![Overview Dashboard](docs/images/dashboard_overview.png)
 ![Product Dashboard](docs/images/dashboard_product.png)
 ![Customers Dashboard](docs/images/dashboard_customers.png)
 
-## How to run
+---
 
-### 1. Extract + Load (dlt)
+## 🚀 Chạy lại từ đầu
+
+<details>
+<summary><b>1. Extract + Load (dlt)</b></summary>
 
 ```bash
 cd el
@@ -103,8 +117,10 @@ pip install -r ../requirements-el.txt
 # điền credentials vào .dlt/secrets.toml (SQL Server + Snowflake)
 python pipeline_ecommerce_v1_fullload.py
 ```
+</details>
 
-### 2. Transform (dbt)
+<details>
+<summary><b>2. Transform (dbt)</b></summary>
 
 ```bash
 cd dbt_ecommerce
@@ -115,39 +131,57 @@ dbt run
 dbt test
 dbt docs generate && dbt docs serve   # xem lineage graph
 ```
+</details>
 
-### 3. Orchestration (Airflow, Docker)
+<details>
+<summary><b>3. Orchestration (Airflow + Docker)</b></summary>
 
 ```bash
 curl -sSL install.astronomer.io | sudo bash -s
 cd airflow
-# điền credentials vào .env và airflow_settings.yaml (xem template trong code)
-astro dev start   # UI tại localhost:8080
+# điền credentials vào .env và airflow_settings.yaml
+astro dev start   # UI ở localhost:8080
 ```
+</details>
 
-Trigger DAG `ecommerce_elt_dag` thủ công hoặc đợi lịch chạy tự động `02:00 UTC` hằng ngày.
+<details>
+<summary><b>4. Power BI</b></summary>
 
-### 4. Power BI
+Get Data → Snowflake → **Import mode** → chỉ chọn bảng `fct_*` và `dim_*` trong schema `dev`.
+</details>
 
-Get Data → Snowflake, Import mode, chỉ chọn bảng `fct_*`/`dim_*` trong schema `dev`.
+> ⚠️ Credentials (`.env`, `secrets.toml`, `airflow_settings.yaml`) đều nằm trong `.gitignore` — không có cái nào bị đẩy lên GitHub.
 
-**Credentials không được commit** — `.env`, `secrets.toml`, `airflow_settings.yaml` đều nằm trong `.gitignore`.
+---
 
-## What I learned
+## <a name="what-i-learned"></a>🧠 What I learned
 
-- **`SALES` trong bảng nguồn là giá gốc CHƯA trừ discount**, không phải doanh thu thực nhận — phải verify bằng cách so `unit_price` cùng `product_code` ở các mức discount khác nhau (không đổi) mới phát hiện ra, rồi tính riêng `net_sales = sales * (1 - discount)` ở tầng intermediate.
-- **Mã `region_code`/`product_code` bị lặp prefix** (kiểu `RR0001`) ở một số dòng — phải `REGEXP_REPLACE` làm sạch ngay tại staging, nếu không sẽ gãy join với dimension một cách âm thầm. Rủi ro đánh đổi: nếu nguồn tồn tại đồng thời `R001` và `RR001`, sau khi clean sẽ trùng nhau — test `relationships` ở `fct_sales` là lưới an toàn cuối cùng để bắt lỗi này.
-- **Chủ động bỏ RFM scoring.** Thay vì chấm điểm/gán nhãn khách hàng, `fct_customer_summary` chỉ tổng hợp hành vi thô (`total_orders`, `days_since_last_order`, `is_returning_customer`) — đơn giản, đủ dùng, không thêm logic nghiệp vụ cần diễn giải.
-- **Cosmos cần `InvocationMode.SUBPROCESS` ở cả `ExecutionConfig` lẫn `RenderConfig`** — vì dbt chạy trong venv riêng với Airflow (tránh xung đột dependency). Mặc định Cosmos dùng `DBT_RUNNER`, đòi dbt cài chung môi trường với Airflow, sẽ raise lỗi ngay lúc parse DAG nếu không set đúng cả 2 chỗ.
-- **`fct_customer_summary` không có cột ngày nối vào `dim_date`** — một quyết định thiết kế đúng grain (1 dòng = 1 khách hàng, tổng hợp *toàn bộ* lịch sử), nhưng hệ quả là các chỉ số như `is_returning_customer` không thể lọc theo năm trong Power BI. Chấp nhận giới hạn này thay vì ép thêm ngày vào bảng — làm vậy sẽ hạ grain và phá vỡ đúng ý nghĩa "quay lại hay không" của cột đó.
+Phần này mới là phần đáng giá nhất của project. Mấy chỗ mình vấp và cách xử lý:
 
-## Cấu trúc repo
+**`SALES` không phải doanh thu thật.** Ban đầu mình tưởng cột `sales` là tiền thu về, hóa ra nó là giá gốc *chưa trừ discount*. Phát hiện ra bằng cách so `unit_price` của cùng một sản phẩm ở các mức discount khác nhau — thấy nó không đổi. Từ đó mới tính riêng `net_sales = sales * (1 - discount)`. Nếu không để ý chỗ này thì mọi con số doanh thu trên dashboard đều sai mà không ai biết.
+
+**Mã region/product bị bẩn.** Một số dòng có mã kiểu `RR0001` (lặp prefix). Không clean thì join với dimension gãy âm thầm — không báo lỗi, chỉ là số bị thiếu. Mình `REGEXP_REPLACE` ngay ở staging. Rủi ro đổi lại: lỡ nguồn có sẵn cả `R001` lẫn `RR001` thì sau khi clean sẽ đụng nhau — nên mình để test `relationships` làm chốt chặn cuối.
+
+**Cosmos + dbt trong venv riêng = một cú lừa.** dbt mình cài trong venv tách biệt để khỏi đụng dependency của Airflow. Nhưng Cosmos mặc định giả định dbt nằm chung env, nên phải ép `InvocationMode.SUBPROCESS` ở **cả `ExecutionConfig` lẫn `RenderConfig`** — thiếu một trong hai là DAG fail ngay lúc parse. Cái này ngốn của mình kha khá thời gian mới ra.
+
+**Bỏ RFM là quyết định đúng.** Lúc đầu định làm RFM scoring cho khách hàng cho "xịn", nhưng nghĩ lại thấy over-engineer so với scope. Thay bằng `fct_customer_summary` tổng hợp thô — đơn giản, đủ trả lời câu hỏi, không phải giải thích một đống logic gán điểm.
+
+**`fct_customer_summary` không link được `dim_date`.** Bảng này grain là 1 dòng/khách (tổng hợp *cả đời* khách hàng), nên không có cột ngày để nối vào `dim_date`. Hệ quả: mấy chỉ số như "khách quay lại" không lọc được theo năm trong Power BI. Mình chấp nhận giới hạn này thay vì nhét ngày vào — vì làm vậy sẽ phá vỡ đúng ý nghĩa của cột. Trên dashboard mình ghi rõ "All-time" để người xem không hiểu nhầm.
+
+---
+
+## 📁 Cấu trúc repo
 
 ```
 xom-ecommerce-data-pipeline/
 ├── el/                    # Extract + Load (dlt)
-├── dbt_ecommerce/         # Transform (dbt) — staging, intermediate, marts, tests
+├── dbt_ecommerce/         # Transform — staging, intermediate, marts, tests
 ├── airflow/               # Orchestration (Astro project, Docker)
 └── docs/
-    └── schema_dump.txt    # Khảo sát schema nguồn SQL Server
+    ├── schema_dump.txt    # Khảo sát schema nguồn
+    └── images/            # Screenshot DAG + dashboard
 ```
+
+---
+
+<p align="center"><sub>Built by trinpb04 · SQL Server → dlt → Snowflake → dbt → Airflow → Power BI</sub></p>
