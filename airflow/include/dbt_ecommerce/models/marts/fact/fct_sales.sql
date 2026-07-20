@@ -1,0 +1,19 @@
+SELECT
+    row_id,
+    order_id,
+    order_date,
+    customer_id,
+    product_id,
+    region_id,
+    customer_segment,
+    quantity,
+    sales,
+    discount,
+    profit,
+    net_sales,
+    profit_margin,
+    unit_price,
+    discount_amount,
+    is_profitable
+FROM
+    {{ ref('int_sales_enriched') }}

@@ -1,0 +1,10 @@
+version: 2
+
+models: 
+  - name: dim_customer
+    description: "Bảng dim cho khách hàng"
+    columns:
+      - name: id
+        tests: 
+          - not_null
+          - unique

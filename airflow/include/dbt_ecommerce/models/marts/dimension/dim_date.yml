@@ -1,0 +1,21 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: "Date dimension - 1 dòng cho mỗi ngày liên tục (spine), phủ đúng khoảng thời gian có đơn hàng trong e_commerce_ecom_sales và tạo hieararchy Year -> Quarter -> Month cho slicer trong power bi"
+    columns:
+      - name: date_day
+        description: "Ngày (Grain thấp nhất), khóa join với fct order_date"
+        tests:
+          - not_null
+          - unique
+      - name: year
+        description: "Năm."
+      - name: quarter
+        description: "Quý dạng số (1-4)."
+      - name: quarter_name
+        description: "Quý dạng hiển thị (Q1, Q2, Q3, Q4)."
+      - name: month_num
+        description: "Tháng dạng số (1-12) - dùng làm Sort by Column cho month_name."
+      - name: month_name
+        description: "Tháng dạng tên viết tắt (Jan, Feb...) - dùng hiển thị trên slicer/trục biểu đồ"
