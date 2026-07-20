@@ -29,10 +29,7 @@
 
 Mục tiêu không phải "cho có" mà là làm đúng như production: có test, có orchestration, có star schema tử tế, và mỗi quyết định đều có lý do (mình ghi hết ở phần [What I learned](#what-i-learned) bên dưới).
 
-```
-SQL Server ──dlt──▶ Snowflake (raw) ──dbt──▶ Snowflake (clean) ──▶ Power BI
-                          └──────── Airflow chạy tự động mỗi ngày ────────┘
-```
+![Pipeline Architecture](docs/images/pipeline.png)
 
 Nghĩ đơn giản như một nhà máy nước: SQL Server là cái giếng, dlt là máy bơm, Snowflake là bồn chứa, dbt là hệ thống lọc, Airflow là cái công tắc hẹn giờ, còn Power BI là vòi nước cuối — mở ra là có nước sạch xài.
 

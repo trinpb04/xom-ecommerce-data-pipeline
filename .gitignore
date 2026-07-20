@@ -21,3 +21,6 @@ logs/
 airflow.db
 airflow.cfg
 .astro/
+
+#File rac Windows tao ra khi copy
+*:Zone.Identifier
